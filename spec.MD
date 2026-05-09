@@ -1,5 +1,5 @@
 # SPEC.md — OLX Deal Finder
-> **Versão:** 2.2.1 | **Status:** MVP | **Princípio:** Spec guia tudo. Em caso de conflito, SPEC manda.
+> **Versão:** 2.2.2 | **Status:** MVP | **Princípio:** Spec guia tudo. Em caso de conflito, SPEC manda.
 
 ---
 
@@ -319,10 +319,86 @@ python src/core/scheduler.py       # Scraper manual
 
 ---
 
+## 11. Git Workflow
+
+> Parte do ciclo obrigatório de cada tarefa (§7). Nenhum commit é feito fora deste fluxo.
+
+### 11.1 Ordem de Execução
+
+Toda tarefa **deve seguir esta ordem exata**. Não pule etapas.
+
+```
+1. Codificar   → implementar o módulo da tarefa (§7)
+2. Self-check  → executar checklist de §8
+3. Testar      → pytest -v (§10)
+4. Lint        → ruff check .
+5. Commit      → somente se todas as etapas anteriores passarem
+```
+
+> Se qualquer etapa falhar → corrigir → repetir o ciclo desde o início.
+
+---
+
+### 11.2 Regra de Commit
+
+Um commit **só é permitido** quando:
+
+| Condição | Resultado |
+|----------|-----------|
+| Todos os testes passam (`pytest -v`) | ✅ Pode commitar |
+| `ruff check .` sem erros | ✅ Pode commitar |
+| Self-check de §8 concluído sem ❌ | ✅ Pode commitar |
+| Qualquer verificação falhou | 🚫 Commit proibido |
+
+---
+
+### 11.3 Convenção de Commits
+
+Formato obrigatório:
+
+```
+<tipo>: <descrição curta no imperativo>
+```
+
+| Tipo | Quando usar |
+|------|-------------|
+| `feat` | Nova funcionalidade ou módulo |
+| `fix` | Correção de erro |
+| `refactor` | Reorganização interna sem mudança funcional |
+| `test` | Novos testes ou melhoria de cobertura (§10) |
+| `chore` | Ajustes técnicos (dependências, config, CI) |
+| `docs` | Alterações na `SPEC.md` ou documentação |
+
+**Exemplos válidos:**
+```
+feat: implement crawler with early stop and jitter
+fix: handle timeout during OLX page navigation
+refactor: extract score calculation to helper function
+test: add unit tests for price normalization
+chore: update requirements.txt with pinned versions
+docs: update tech stack versions in SPEC.md
+```
+
+**Exemplos proibidos:**
+```
+fix stuff
+update
+changes
+test
+misc
+ajustes
+```
+
+> Commits vagos são proibidos. A descrição deve deixar claro **o que** foi feito e **onde**.
+
+---
+
+
 ## Changelog
 
 | Data | Versão | Mudança |
 |------|--------|---------|
+| 2026-05-09 | 2.2.2 | Adição da seção "Git Workflow" (§11) com regras de ciclo de desenvolvimento e padrões de commit |
 | 2026-05-09 | 2.2.1 | Atualização de versões na "Tech Stack". Adição de jitter e User-Agent dinâmico em "Tarefas Modulares" |
 | 2026-05-09 | 2.2 | Auditoria : removidas redundâncias, adicionados .env template,.gitignore, fix arquitetural Telegram (requests > python-telegram-bot), playwright-stealth pinado, requirements.txt referenciado |
 | 2026-05-09 | 2.1 | Telegram, filtro DF, normalização, recorte temporal 72h, blacklist, anti-bot, logging, pipeline |
