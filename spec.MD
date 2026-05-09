@@ -317,7 +317,7 @@ python src/core/scheduler.py       # Scraper manual
 
 | Data | Versão | Mudança |
 |------|--------|---------|
-| 2026-05-09 | 2.2 | Auditoria final: removidas redundâncias, adicionados .env template,.gitignore, fix arquitetural Telegram (requests > python-telegram-bot), playwright-stealth pinado, requirements.txt referenciado |
+| 2026-05-09 | 2.2 | Auditoria : removidas redundâncias, adicionados .env template,.gitignore, fix arquitetural Telegram (requests > python-telegram-bot), playwright-stealth pinado, requirements.txt referenciado |
 | 2026-05-09 | 2.1 | Telegram, filtro DF, normalização, recorte temporal 72h, blacklist, anti-bot, logging, pipeline |
 | 2026-05-09 | 2.0 | Refatoração Osmani |
 | 2026-05-05 | 1.0 | Versão inicial |
