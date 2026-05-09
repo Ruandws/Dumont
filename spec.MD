@@ -1,5 +1,5 @@
 # SPEC.md — OLX Deal Finder
-> **Versão:** 2.2 | **Status:** MVP | **Princípio:** Spec guia tudo. Em caso de conflito, SPEC manda.
+> **Versão:** 2.2.1 | **Status:** MVP | **Princípio:** Spec guia tudo. Em caso de conflito, SPEC manda.
 
 ---
 
@@ -323,6 +323,7 @@ python src/core/scheduler.py       # Scraper manual
 
 | Data | Versão | Mudança |
 |------|--------|---------|
+| 2026-05-09 | 2.2.1 | Atualização de versões na "Tech Stack". Adição de jitter e User-Agent dinâmico em "Tarefas Modulares" |
 | 2026-05-09 | 2.2 | Auditoria : removidas redundâncias, adicionados .env template,.gitignore, fix arquitetural Telegram (requests > python-telegram-bot), playwright-stealth pinado, requirements.txt referenciado |
 | 2026-05-09 | 2.1 | Telegram, filtro DF, normalização, recorte temporal 72h, blacklist, anti-bot, logging, pipeline |
 | 2026-05-09 | 2.0 | Refatoração Osmani |

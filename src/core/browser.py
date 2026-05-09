@@ -1,1 +1,1 @@
-# Setup e configuração do Playwright
+# Setup e configuraï¿½ï¿½o do Playwright
