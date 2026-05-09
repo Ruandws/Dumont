@@ -79,13 +79,14 @@ Referência principal para implementar `scheduler.py`. Cada módulo recebe dados
 | Componente | Tecnologia | Versão |
 |------------|-----------|--------|
 | Linguagem | Python | 3.14 |
-| Scraping | Playwright | 1.58 |
-| Stealth | playwright-stealth | 0.0.9 |
-| Processamento | Pandas | 3.0.2 |
+| Scraping | Playwright | 1.59 |
+| Stealth | playwright-stealth | 1.0.6 |
+| Processamento | Pandas | 3.0.0 |
 | Armazenamento | SQLite | 3.53.1 |
 | Interface | Streamlit | 1.57.0 |
 | Agendamento | APScheduler | 3.11.2 |
-| Alertas | requests (stdlib-like) | 2.32.x |
+| Alertas | requests | 2.33.0 |
+| Ambiente | python-dotenv | 1.2.0 |
 
 > **Nota sobre Telegram:** Não usar `python-telegram-bot` — v20+ é async e conflita com APScheduler 3.x síncrono. Usar `requests.post()` diretamente na API REST do Telegram (`https://api.telegram.org/bot{TOKEN}/sendMessage`). Simples, síncrono, sem dependência extra.
 
@@ -178,19 +179,24 @@ __pycache__/
 
 ## 7. Tarefas Modulares
 
-> **Uma tarefa por sessão.** Para cada sessão: (1) leia a spec completa, (2) implemente apenas o módulo da tarefa, (3) execute o self-check de §8.
+> **Regra de ouro:** NUNCA implementar mais de uma tarefa por sessão de agente. Cada tarefa é autossuficiente.
 
-| # | Módulo | Input | Output |
-|---|--------|-------|--------|
-| 1 | `core/browser.py` | — | Playwright com stealth + logger configurado |
-| 2 | `core/crawler.py` | `SEARCH_URL` do .env | Lista de URLs (máx 3 pág., early stop) |
-| 3 | `core/parser.py` | HTML de um anúncio | `Dict` com campos ou descarte com WARNING |
-| 4 | `data/models.py` + `data/storage.py` | Objeto `Deal` | Deal salvo no SQLite sem duplicata |
-| 5 | `data/processor.py` | Lista de deals brutos | Lista com preço normalizado, sem duplicatas |
-| 6 | `services/deal_finder.py` | Lista de `Deal` do banco | Lista filtrada com `score ≥ 0.25` |
-| 7 | `services/alert.py` | Lista de oportunidades | Mensagem Telegram enviada por oportunidade |
-| 8 | `core/scheduler.py` | — | Loop APScheduler orquestrando §3 completo |
-| 9 | `ui/app.py` | Banco SQLite | Tabela de oportunidades na tela |
+| # | Tarefa | Módulo | Input esperado | Output esperado |
+|---|--------|--------|----------------|-----------------|
+| 1 | Criar crawler + browser seguro | `core/browser.py` + `core/crawler.py` | URL da OLX | Lista de URLs de anúncios · User-Agent aleatório por sessão · jitter entre requests (`random.uniform(2.0, 5.0)`) |
+| 2 | Criar parser de dados | `core/parser.py` | HTML de um anúncio | Dict com título, preço, link, data |
+| 3 | Implementar storage + modelo | `data/storage.py` + `data/models.py` | Objeto `Deal` | Deal salvo no SQLite sem duplicata |
+| 4 | Implementar processor | `data/processor.py` | Lista de deals raw | Lista normalizada, sem duplicatas |
+| 5 | Implementar score | `services/deal_finder.py` | Lista de `Deal` | Lista com `score` preenchido |
+| 6 | Implementar alert | `services/alert.py` | Lista de oportunidades | Notificação disparada |
+| 7 | Conectar scheduler | `core/scheduler.py` | — | Loop automático funcionando |
+| 8 | UI básica Streamlit | `ui/app.py` | Banco SQLite | Tabela de oportunidades na tela |
+
+**Para cada tarefa, o agente recebe apenas:**
+- A seção desta SPEC relevante para aquela tarefa
+- Os tipos de dados necessários (§8)
+- Os boundaries (§11)
+- O self-check (§13)
 
 ---
 
