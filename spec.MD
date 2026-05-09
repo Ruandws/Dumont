@@ -1,94 +1,82 @@
 # SPEC.md — OLX Deal Finder
-> **Versão:** 1.0 | **Status:** MVP | **Princípio:** Especificação guia tudo. Código segue SPEC. Se conflito → SPEC manda.
+> **Versão:** 2.0 | **Status:** MVP | **Princípio:** Spec guia tudo. Em caso de conflito, SPEC manda.
 
 ---
 
-## SUMÁRIO RÁPIDO (Para o Agente)
-> Leia isto primeiro. Consulte as seções completas conforme a tarefa.
+## 1. Visão e Objetivo
 
-| Seção | O que cobre |
-|-------|-------------|
-| [1. Objetivo](#1-objetivo-por-quê) | Por que existe este sistema |
-| [2. Critérios de Sucesso](#2-critérios-de-sucesso) | Quando está pronto e correto |
-| [3. Tech Stack](#3-tech-stack) | Tecnologias específicas com versões |
-| [4. Comandos](#4-comandos) | Executar, testar, lint — copie e cole |
-| [5. Estrutura do Projeto](#5-estrutura-do-projeto) | Onde cada arquivo mora |
-| [6. Fluxo Principal](#6-fluxo-principal) | Como o sistema se move de ponta a ponta |
-| [7. Lógica de Negócio](#7-lógica-de-negócio-deal_finderpy) | Regras do deal_finder — core da aplicação |
-| [8. Modelo de Dados](#8-modelo-de-dados) | Estrutura do `Deal` |
-| [9. Estilo de Código](#9-estilo-de-código) | Convenções com exemplo real |
-| [10. Testes](#10-testes) | O que validar e como |
-| [11. Boundaries](#11-boundaries-crítico) | ✅ Sempre / ⚠️ Pergunte / 🚫 Nunca |
-| [12. Tarefas Modulares](#12-tarefas-modulares) | Plano de execução isolada por agente |
-| [13. Self-Check](#13-self-check) | Verificação após cada implementação |
-| [14. Extensões Futuras](#14-extensões-futuras) | Fora do escopo do MVP |
+**O que é:** Sistema automatizado que monitora a OLX, detecta anúncios subvalorizados de hardware e alerta o usuário em tempo real.
 
----
+**Por que existe:** Revendedores de peças de PC perdem oportunidades porque não conseguem monitorar o mercado 24/7. Este sistema faz isso por eles.
 
-## 1. Objetivo (Por Quê)
+**Usuário:** Revendedor ativo de hardware usado que compra barato e revende com margem.
 
-**O que:** Sistema automatizado que encontra oportunidades de compra na OLX com base em regras definidas pelo usuário.
-
-**Por que:** Detectar anúncios subvalorizados antes da concorrência, alertar rapidamente e maximizar lucro em revenda de hardware.
-
-**Usuário principal:** Revendedor de peças de PC que monitora o mercado de segunda mão ativamente.
-
-**Jobs to be done:**
-- Ver anúncios novos assim que publicados (< 5 min)
-- Saber imediatamente se um preço está abaixo da média de mercado
+**O que o usuário precisa:**
+- Ver anúncios novos em menos de 5 minutos após publicação
+- Saber de imediato se um preço está abaixo da média de mercado
 - Não perder tempo lendo anúncios sem valor
-- Confiar que o sistema rodou sem precisar verificar manualmente
 
----
-
-## 2. Critérios de Sucesso
-
-O sistema está funcionando corretamente quando:
+**Definição de pronto:**
 
 | Critério | Métrica |
 |----------|---------|
-| Velocidade de detecção | Anúncios novos encontrados em **≤ 5 minutos** |
-| Precisão do score | `score = (media - preco) / media` calculado corretamente para qualquer input |
-| Qualidade dos alertas | Alertas disparados **apenas** quando `score >= 0.25` |
-| Integridade dos dados | **Zero duplicatas** armazenadas no banco |
-| Autonomia | Sistema roda automaticamente **sem intervenção manual** |
+| Velocidade | Anúncios detectados em ≤ 5 min |
+| Precisão de score| `score = (média - preço) / média` calculo acertivo para qualquer input |
+| Alertas precisos | Disparados **somente** quando `score ≥ 0.25` |
+| Integridade | Zero duplicatas no banco |
+| Autonomia | Loop automático sem intervenção manual |
 
-> **Conformance:** Se qualquer um dos critérios acima falhar, a implementação não está completa. Não avance para a próxima tarefa.
-
----
-
-## 3. Tech Stack
-
-> Seja preciso. Não substitua sem passar pelo processo de `⚠️ Ask first`.
-
-| Componente | Tecnologia | Finalidade |
-|------------|-----------|------------|
-| Linguagem | **Python 3.14** | Base do projeto |
-| Scraping | **Playwright** | Navegação e extração da OLX |
-| Processamento | **Pandas** | Limpeza, normalização, agrupamento |
-| Armazenamento | **SQLite** | Banco de dados local (MVP) |
-| Interface | **Streamlit** | UI de monitoramento |
-| Agendamento | **APScheduler** | Loop automático de execução |
+> Se qualquer critério falhar, a implementação não está completa. Não avance para a próxima tarefa.
 
 ---
 
-## 4. Comandos
+## 2. Não-Objetivos (Fora do Escopo do MVP)
 
-> Copie e execute direto. Sem ambiguidade.
+O agente **não deve implementar** nenhum dos itens abaixo, mesmo que pareça natural fazê-lo:
 
-```bash
-# Rodar a aplicação (UI)
-streamlit run src/ui/app.py
+- Proxy rotation ou evasão de bloqueio de scraping
+- Modelo de ML para scoring (a fórmula linear é suficiente para o MVP)
+- Integração com Telegram, WhatsApp ou qualquer bot externo
+- Suporte a outros marketplaces (Enjoei, Mercado Livre, Facebook)
+- Cache ou histórico de médias entre sessões
+- Autenticação de usuário na UI
 
-# Rodar o scraper manualmente
-python src/core/scheduler.py
+> Estes itens existem para evitar scope creep. Se o agente quiser adicionar qualquer um, deve parar e perguntar.
 
-# Testes (implementar com pytest)
-pytest -v
+---
 
-# Lint e formatação
-ruff check .
+## 3. Fluxo de Trabalho do Agente (Staged Workflow)
+
+Siga estas etapas em ordem. **Não pule etapas.**
+
 ```
+1. PLAN (read-only)
+   └── Leia a spec completa antes de escrever qualquer código
+   └── Entenda o módulo atual, seus inputs e outputs esperados (§7)
+   └── Identifique dependências com outros módulos
+
+2. IMPLEMENT
+   └── Escreva apenas o módulo da tarefa atual
+   └── Uma tarefa por sessão (ver §7)
+
+3. SELF-CHECK
+   └── Execute o checklist de §8 antes de encerrar
+```
+
+---
+
+## 4. Tech Stack
+
+| Componente | Tecnologia | Versão |
+|------------|-----------|--------|
+| Linguagem | Python | 3.14 |
+| Scraping | Playwright | 1.58 |
+| Processamento | Pandas | 3.0.2 |
+| Armazenamento | SQLite | 3.53.1 |
+| Interface | Streamlit | 1.57.0 |
+| Agendamento | APScheduler | 3.11.2 |
+
+> Não substitua tecnologias sem passar pelo processo `⚠️ Ask first` de §6.
 
 ---
 
@@ -97,242 +85,140 @@ ruff check .
 ```
 src/
 ├── core/
-│   ├── browser.py       # Setup e configuração do Playwright
+│   ├── browser.py       # Setup do Playwright
 │   ├── crawler.py       # Navegação e paginação na OLX
 │   ├── parser.py        # Extração de dados dos anúncios
-│   └── scheduler.py     # Loop de agendamento com APScheduler
+│   └── scheduler.py     # Loop de agendamento (APScheduler)
 ├── data/
-│   ├── models.py        # Estruturas de dados (dataclasses/Pydantic)
-│   ├── storage.py       # Leitura e escrita no SQLite
+│   ├── models.py        # Dataclasses (Deal)
+│   ├── storage.py       # Leitura/escrita SQLite
 │   └── processor.py     # Limpeza, normalização, deduplicação
 ├── services/
 │   ├── alert.py         # Disparo de notificações
-│   └── deal_finder.py   # Lógica de negócio: score e oportunidades
+│   └── deal_finder.py   # Score e filtragem de oportunidades
 └── ui/
     └── app.py           # Interface Streamlit
 ```
 
-**Regras de localização:**
+**Regras:**
 - Todo código novo vai dentro de `src/`
-- Nenhum arquivo fora de `src/` deve ser criado ou modificado pelo agente
-- Cada módulo tem responsabilidade única — não misture
+- Cada módulo tem uma única responsabilidade
+- `crawler` e `parser` nunca chamam `deal_finder`; `deal_finder` nunca chama `crawler`
 
 ---
 
-## 6. Fluxo Principal
+## 6. Boundaries
 
-```
-scheduler
-   └── inicia execução periódica (APScheduler)
-         └── crawler
-               └── acessa OLX, navega páginas
-                     └── parser
-                           └── extrai: título, preço, link, data_publicacao
-                                 └── processor
-                                       ├── remove duplicados
-                                       └── padroniza preço (float, sem R$, sem pontos)
-                                             └── storage
-                                                   └── salva anúncios novos no SQLite
-                                                         └── deal_finder
-                                                               ├── agrupa por produto
-                                                               ├── calcula média de preço
-                                                               ├── calcula score
-                                                               └── filtra oportunidades (score >= 0.25)
-                                                                     └── alert
-                                                                           └── dispara notificação
-```
+### ✅ ALWAYS — Faça sem perguntar
+- Seguir a estrutura de §5
+- Type hints em todas as funções públicas
+- Validar dados antes de salvar no banco
+- Executar o self-check de §8 após cada tarefa
 
-> **Lei de separação:** `crawler` e `parser` nunca chamam `deal_finder`. `deal_finder` nunca chama `crawler`. Cada camada fala apenas com a camada seguinte.
+### ⚠️ ASK FIRST — Pause e confirme com o usuário
+- Alterar o modelo `Deal` (§9)
+- Adicionar qualquer nova dependência
+- Mudar o critério de score (atualmente 0.25)
+- Modificar o schema do banco SQLite
+- Alterar o fluxo de comunicação entre módulos
+
+### 🚫 NEVER — Proibido absolutamente
+- Misturar scraping com lógica de negócio em um mesmo arquivo
+- Hardcode de URLs, tokens ou credenciais (use `.env`)
+- Scraping sem delay entre requests
+- Criar ou modificar arquivos fora de `src/`
+- Commitar cookies ou tokens de sessão do Playwright
+- Implementar mais de uma tarefa por sessão
 
 ---
 
-## 7. Lógica de Negócio (`deal_finder.py`)
+## 7. Tarefas Modulares
 
-**Entrada:** Lista de objetos `Deal` já salvos no banco
+> Uma tarefa por sessão. O agente recebe apenas a seção relevante, o modelo de dados (§9) e os boundaries (§6).
 
-**Processo:**
+| # | Tarefa | Módulo | Input | Output esperado |
+|---|--------|--------|-------|-----------------|
+| 1 | Crawler | `core/crawler.py` | URL de busca da OLX | Lista de URLs de anúncios |
+| 2 | Parser | `core/parser.py` | HTML de um anúncio | `Dict` com título, preço, link, data |
+| 3 | Storage + Model | `data/storage.py` + `data/models.py` | Objeto `Deal` | Deal salvo no SQLite, sem duplicata |
+| 4 | Processor | `data/processor.py` | Lista de deals brutos | Lista normalizada, sem duplicatas |
+| 5 | Deal Finder | `services/deal_finder.py` | Lista de `Deal` | Lista com `score` preenchido, filtrada por `score ≥ 0.25` |
+| 6 | Alert | `services/alert.py` | Lista de oportunidades | Notificação disparada |
+| 7 | Scheduler | `core/scheduler.py` | — | Loop automático conectando todos os módulos |
+| 8 | UI | `ui/app.py` | Banco SQLite | Tabela de oportunidades renderizada |
+
+**Regra de negócio do Deal Finder (tarefa 5):**
+- Agrupe anúncios por produto (normalize o título)
+- Calcule média de preço do grupo
+- `score = (média - preço) / média`
+- Filtre apenas `score ≥ 0.25` (desconto de 25%+ abaixo da média)
+- Não calcule score se o grupo tiver menos de 2 anúncios
+- Score negativo = preço acima da média → descarte
+
+---
+
+## 8. Self-Check
+
+> Execute após cada implementação. Se qualquer item for ❌, corrija antes de encerrar.
+
+```
+SELF-CHECK — [Nome da Tarefa]
+
+[ ] Código está no módulo correto (§5)?
+[ ] Respeita todos os boundaries de §6?
+[ ] Cobre o output esperado da tarefa em §7?
+[ ] Todas as funções públicas têm type hints?
+[ ] Nenhuma função passa de 30 linhas?
+[ ] Nenhuma lógica de negócio fora de services/?
+[ ] Dados validados antes de salvar?
+[ ] Nenhum item dos Não-Objetivos (§2) foi implementado?
+```
+
+**LLM-as-Judge (para revisão de qualidade):**
+Ao revisar código gerado, use o prompt abaixo numa sessão separada:
+```
+Revise este código em relação à SPEC.md (seção de Boundaries e Estilo).
+Aponte qualquer violação de separação de responsabilidades, type hints ausentes,
+funções acima de 30 linhas ou lógica de negócio fora de services/.
+```
+
+---
+
+## 9. Modelo de Dados
 
 ```python
-# Passo 1: Agrupar por produto (normalizar título)
-# Passo 2: Calcular média de preço do grupo
-avg_price = sum(prices) / len(prices)
-
-# Passo 3: Calcular score por anúncio
-score = (avg_price - price) / avg_price
-
-# Passo 4: Filtrar oportunidades
-opportunities = [deal for deal in deals if deal.score >= 0.25]
-```
-
-**Saída:** Lista de `Deal` com `score` preenchido, filtrada por oportunidades
-
-**Critério MVP:**
-- `score >= 0.25` → oportunidade (desconto de 25%+ abaixo da média)
-- `score < 0` → preço acima da média → ignorar
-- Sem dados suficientes para média (< 2 anúncios) → não calcular, não alertar
-
----
-
-## 8. Modelo de Dados
-
-**Arquivo:** `src/data/models.py`
-
-```python
-from dataclasses import dataclass, field
+# src/data/models.py
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
 
 @dataclass
 class Deal:
-    id: str                          # Hash único (url + data) para evitar duplicatas
-    titulo: str                      # Título original do anúncio
-    preco: float                     # Preço normalizado (float, sem formatação)
-    url: str                         # Link direto para o anúncio na OLX
-    data_publicacao: datetime        # Data/hora de publicação
-    score: Optional[float] = None    # Calculado pelo deal_finder (None até processar)
-```
-
-**Contrato de dados:**
-- `preco` sempre `float`, nunca `str`
-- `id` gerado por hash determinístico — mesmo anúncio sempre gera mesmo `id`
-- `score` é `None` quando não processado, `float` quando calculado
-
----
-
-## 9. Estilo de Código
-
-**Convenções:**
-- Snake_case para tudo (variáveis, funções, arquivos)
-- Funções com máximo de 30 linhas
-- Type hints em todas as funções públicas
-- Nenhuma lógica de negócio fora de `src/services/`
-- Nenhum dado sensível hardcoded (URLs de config vão em `.env` ou arquivo de configuração)
-
-**Exemplo canônico — use como referência:**
-
-```python
-def calculate_score(price: float, avg_price: float) -> float:
-    """Retorna o score de desconto relativo à média do grupo."""
-    if avg_price == 0:
-        return 0.0
-    return (avg_price - price) / avg_price
-```
-
-**Anti-padrões — nunca faça:**
-```python
-# ❌ Lógica de negócio no parser
-def parse_deal(html):
-    price = extract_price(html)
-    score = (500 - price) / 500  # NUNCA: lógica de negócio aqui
-
-# ❌ Dado sensível hardcoded
-BASE_URL = "https://olx.com.br/search?q=gtx1080"  # NUNCA: vai em config
+    id: str                        # Hash determinístico (url + data) — mesmo anúncio = mesmo id
+    titulo: str                    # Título original do anúncio
+    preco: float                   # Preço normalizado (float, nunca str)
+    url: str                       # Link direto para o anúncio
+    data_publicacao: datetime      # Data/hora de publicação
+    score: Optional[float] = None  # None até o deal_finder processar
 ```
 
 ---
 
-## 10. Testes
+## 10. Testes Obrigatórios (MVP)
 
-**MVP — validar obrigatoriamente:**
-
-| Teste | O que verifica |
-|-------|---------------|
-| `test_calculate_score` | Score correto para price=300, avg=400 → 0.25 |
-| `test_calculate_score_above_avg` | Score negativo quando price > avg |
-| `test_remove_duplicates` | Mesmo `id` inserido duas vezes → apenas 1 registro |
+| Teste | Validação |
+|-------|-----------|
+| `test_calculate_score` | `price=300, avg=400` → `score == 0.25` |
+| `test_score_above_avg` | `price > avg` → `score < 0` |
+| `test_no_duplicates` | Mesmo `id` inserido duas vezes → 1 registro |
 | `test_price_normalization` | `"R$ 1.500,00"` → `1500.0` |
 
-**Exemplo de teste esperado:**
-```python
-def test_calculate_score():
-    assert calculate_score(price=300.0, avg_price=400.0) == 0.25
-
-def test_no_opportunity_below_threshold():
-    assert calculate_score(price=390.0, avg_price=400.0) < 0.25
+```bash
+pytest -v        # Rodar testes
+ruff check .     # Lint
+streamlit run src/ui/app.py   # UI
+python src/core/scheduler.py  # Scraper manual
 ```
-
-**Futuro (pós-MVP):** Testes de integração com Playwright mockado, testes do storage com banco em memória.
-
----
-
-## 11. Boundaries (Crítico)
-
-### ✅ ALWAYS — Faça sem perguntar
-- Seguir a estrutura de pastas definida em §5
-- Separar scraping de lógica de negócio (lei de separação §6)
-- Validar dados antes de salvar no banco
-- Type hints em todas as funções públicas
-- Executar self-check (§13) após cada implementação
-
-### ⚠️ ASK FIRST — Pause e confirme com o usuário
-- Mudar a estrutura do modelo `Deal` (§8)
-- Adicionar nova dependência ao projeto
-- Alterar o fluxo principal (§6)
-- Mudar o critério de score (atualmente 0.25)
-- Modificar o schema do banco SQLite
-
-### 🚫 NEVER — Proibido absolutamente
-- Misturar scraping com lógica de negócio em um mesmo módulo
-- Hardcode de URLs, tokens, credenciais, configurações sensíveis
-- Fazer scraping agressivo (sem delay entre requests — risco de bloqueio)
-- Criar ou modificar arquivos fora de `src/`
-- Commitar dados de sessão, cookies ou tokens do Playwright
-- Fazer tudo em um único prompt — cada tarefa é isolada (§12)
-
----
-
-## 12. Tarefas Modulares
-
-> **Regra de ouro:** NUNCA implementar mais de uma tarefa por sessão de agente. Cada tarefa é autossuficiente.
-
-| # | Tarefa | Módulo | Input esperado | Output esperado |
-|---|--------|--------|----------------|-----------------|
-| 1 | Criar crawler básico | `core/crawler.py` | URL da OLX | Lista de URLs de anúncios |
-| 2 | Criar parser de dados | `core/parser.py` | HTML de um anúncio | Dict com título, preço, link, data |
-| 3 | Implementar storage | `data/storage.py` + `data/models.py` | Objeto `Deal` | Deal salvo no SQLite sem duplicata |
-| 4 | Implementar processor | `data/processor.py` | Lista de deals raw | Lista normalizada, sem duplicatas |
-| 5 | Implementar score | `services/deal_finder.py` | Lista de `Deal` | Lista com `score` preenchido |
-| 6 | Implementar alert | `services/alert.py` | Lista de oportunidades | Notificação disparada |
-| 7 | Conectar scheduler | `core/scheduler.py` | — | Loop automático funcionando |
-| 8 | UI básica Streamlit | `ui/app.py` | Banco SQLite | Tabela de oportunidades na tela |
-
-**Para cada tarefa, o agente recebe apenas:**
-- A seção desta SPEC relevante para aquela tarefa
-- Os tipos de dados necessários (§8)
-- Os boundaries (§11)
-- O self-check (§13)
-
----
-
-## 13. Self-Check
-
-> **Obrigatório após cada implementação.** O agente responde antes de encerrar a sessão.
-
-```
-SELF-CHECK — [Nome da Tarefa]
-
-[ ] Código está no módulo correto conforme §5?
-[ ] Respeita os boundaries de §11?
-[ ] Resolve o objetivo específico desta tarefa de §12?
-[ ] Funções têm type hints?
-[ ] Nenhuma função passa de 30 linhas?
-[ ] Nenhuma lógica de negócio fora de services/?
-[ ] Dados validados antes de salvar?
-
-Se qualquer item for ❌ → corrigir ANTES de encerrar.
-```
-
----
-
-## 14. Extensões Futuras
-
-> Fora do escopo do MVP. Não implementar agora. Registrado para referência.
-
-- **Proxy rotation** — evitar bloqueio em alta frequência de scraping
-- **ML para classificação** — modelo de scoring mais sofisticado que a fórmula linear
-- **Integração Telegram** — alertas via bot no Telegram
-- **Multi-marketplace** — estender para Enjoei, Mercado Livre, Facebook Marketplace
-- **Cache de médias** — persistir médias históricas para scoring mais preciso
 
 ---
 
@@ -340,8 +226,5 @@ Se qualquer item for ❌ → corrigir ANTES de encerrar.
 
 | Data | Versão | Mudança |
 |------|--------|---------|
-| 2026-05-05 | 1.0 | Versão inicial — MVP OLX Deal Finder |
-
----
-
-*Este documento é a fonte da verdade. Código segue SPEC. Em caso de conflito, SPEC manda.*
+| 2026-05-09 | 2.0 | Refatoração baseada no framework Osmani (goal-first, não-objetivos, staged workflow, LLM-as-Judge) |
+| 2026-05-05 | 1.0 | Versão inicial |
