@@ -1,5 +1,5 @@
 # SPEC.md — OLX Deal Finder
-> **Versão:** 2.2.2 | **Status:** MVP | **Princípio:** Spec guia tudo. Em caso de conflito, SPEC manda.
+> **Versão:** 2.2.4 | **Status:** MVP | **Princípio:** Spec guia tudo. Em caso de conflito, SPEC manda.
 
 ---
 
@@ -80,13 +80,15 @@ Referência principal para implementar `scheduler.py`. Cada módulo recebe dados
 |------------|-----------|--------|
 | Linguagem | Python | 3.14 |
 | Scraping | Playwright | 1.59 |
-| Stealth | playwright-stealth | 1.0.6 |
+| Stealth | playwright-stealth | 2.0.3 |
 | Processamento | Pandas | 3.0.0 |
 | Armazenamento | SQLite | 3.53.1 |
 | Interface | Streamlit | 1.57.0 |
 | Agendamento | APScheduler | 3.11.2 |
 | Alertas | requests | 2.33.0 |
 | Ambiente | python-dotenv | 1.2.0 |
+| Qualidade | ruff | 0.15.12 |
+| Testes | pytest | 9.0.3 |
 
 > **Nota sobre Telegram:** Não usar `python-telegram-bot` — v20+ é async e conflita com APScheduler 3.x síncrono. Usar `requests.post()` diretamente na API REST do Telegram (`https://api.telegram.org/bot{TOKEN}/sendMessage`). Simples, síncrono, sem dependência extra.
 
@@ -103,19 +105,24 @@ Referência principal para implementar `scheduler.py`. Cada módulo recebe dados
 ├── requirements.txt     # Dependências pinadas (gerado com pip freeze)
 ├── SPEC.md
 └── src/
+    ├── __init__.py
     ├── core/
+    │   ├── __init__.py
     │   ├── browser.py       # Playwright + stealth + logger central
     │   ├── crawler.py       # Paginação, early stop, delays, retry
     │   ├── parser.py        # Extração de campos, descarte de inválidos
     │   └── scheduler.py     # Loop APScheduler, orquestra pipeline
     ├── data/
+    │   ├── __init__.py
     │   ├── models.py        # Dataclass Deal
     │   ├── storage.py       # Leitura/escrita SQLite
     │   └── processor.py     # Normalização de preço, deduplicação
     ├── services/
+    │   ├── __init__.py
     │   ├── alert.py         # POST Telegram via requests
     │   └── deal_finder.py   # Score, filtros, blacklist, normalização
     └── ui/
+        ├── __init__.py
         └── app.py           # Interface Streamlit
 ```
 
@@ -123,7 +130,7 @@ Referência principal para implementar `scheduler.py`. Cada módulo recebe dados
 
 ```dotenv
 # OLX
-SEARCH_URL=https://www.olx.com.br/eletronicos-e-celulares/computadores-e-acessorios/estado-df?q=gtx+1080
+SEARCH_URL=https://www.olx.com.br/informatica/estado-df?q=gtx+1080
 
 # Telegram
 TELEGRAM_TOKEN=seu_token_aqui
@@ -270,6 +277,7 @@ Formato: `%(asctime)s [%(levelname)s] %(name)s: %(message)s` — destino: stdout
 [ ] Nenhum item dos Não-Objetivos (§2) implementado?
 [ ] Erros logados com nível correto (nunca silenciados)?
 [ ] Nenhum valor do .env hardcoded?
+[ ]O contrato de input/output desta tarefa está alinhado com a tarefa anterior e a seguinte?
 ```
 
 *LLM-as-Judge:* Para revisar código gerado, abrir sessão separada com: "Revise este código contra a SPEC.md §6 (Boundaries) e §7.1 (Regras de Negócio). Liste violações."
@@ -360,6 +368,8 @@ Formato obrigatório:
 <tipo>: <descrição curta no imperativo>
 ```
 
+**Idioma:** Obrigatório o uso de Português (Brasil).
+
 | Tipo | Quando usar |
 |------|-------------|
 | `feat` | Nova funcionalidade ou módulo |
@@ -371,12 +381,12 @@ Formato obrigatório:
 
 **Exemplos válidos:**
 ```
-feat: implement crawler with early stop and jitter
-fix: handle timeout during OLX page navigation
-refactor: extract score calculation to helper function
-test: add unit tests for price normalization
-chore: update requirements.txt with pinned versions
-docs: update tech stack versions in SPEC.md
+feat: implementa crawler com early stop e jitter
+fix: trata timeout durante navegação na OLX
+refactor: extrai cálculo de score para função auxiliar
+test: adiciona testes unitários para normalização de preço
+chore: atualiza requirements.txt com versões pinadas
+docs: atualiza versões da tech stack no SPEC.md
 ```
 
 **Exemplos proibidos:**
@@ -398,6 +408,8 @@ ajustes
 
 | Data | Versão | Mudança |
 |------|--------|---------|
+| 2026-05-10 | 2.2.4 | Inserção arquivos __init__ na seção de estrutura do repositório, inserção de ruff e pytest na seção de stack. Obrigação de commits em português. |
+| 2026-05-09 | 2.2.3 | Atualiazação de regras de negócio browser.py/crowler.py.
 | 2026-05-09 | 2.2.2 | Adição da seção "Git Workflow" (§11) com regras de ciclo de desenvolvimento e padrões de commit |
 | 2026-05-09 | 2.2.1 | Atualização de versões na "Tech Stack". Adição de jitter e User-Agent dinâmico em "Tarefas Modulares" |
 | 2026-05-09 | 2.2 | Auditoria : removidas redundâncias, adicionados .env template,.gitignore, fix arquitetural Telegram (requests > python-telegram-bot), playwright-stealth pinado, requirements.txt referenciado |

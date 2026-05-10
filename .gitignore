@@ -1,0 +1,14 @@
+.env
+.venv/
+*.db
+*.sqlite3
+playwright/.auth/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+
+
+# UI Reference Images
+src/ui/*.png
+src/ui/*.jpg
+src/ui/*.jpeg
