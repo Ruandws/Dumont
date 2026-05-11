@@ -1,9 +1,10 @@
 import logging
 import random
 import sys
-from contextlib import contextmanager
-from typing import Generator
-from playwright.sync_api import sync_playwright, Page
+from contextlib import asynccontextmanager
+from typing import AsyncGenerator
+from playwright_stealth import Stealth
+from playwright.async_api import async_playwright, Page, ViewportSize
 
 logger = logging.getLogger("dumont")
 if not logger.handlers:
@@ -28,19 +29,36 @@ USER_AGENTS = [
     "Gecko/20100101 Firefox/120.0",
 ]
 
+VIEWPORTS: list[ViewportSize] = [
+    {"width": 1920, "height": 1080},
+    {"width": 1366, "height": 768},
+    {"width": 1440, "height": 900},
+    {"width": 1536, "height": 864},
+]
 
-@contextmanager
-def get_browser_page() -> Generator[Page, None, None]:
+
+@asynccontextmanager
+async def get_browser_page() -> AsyncGenerator[Page, None]:
     """Inicia Playwright com stealth e User-Agent rotativo."""
-    with sync_playwright() as p:
+    async with async_playwright() as p:
         browser = None
         try:
-            browser = p.chromium.launch(headless=True)
+            browser = await p.chromium.launch(headless=True)
             user_agent = random.choice(USER_AGENTS)
-            context = browser.new_context(user_agent=user_agent)
-            page = context.new_page()
-            from playwright_stealth import Stealth
-            Stealth().apply_stealth_sync(page)
+            
+            context = await browser.new_context(
+                user_agent=user_agent,
+                viewport=random.choice(VIEWPORTS),
+                device_scale_factor=1.0,
+                locale="pt-BR",
+                timezone_id="America/Sao_Paulo",
+                color_scheme="light"
+            )
+            page = await context.new_page()
+            
+            # Aplica stealth no contexto conforme solicitado
+            await Stealth().apply_stealth_async(context)
+            
             logger.info(f"Browser iniciado com stealth (UA: {user_agent[:40]}...)")
             yield page
         except Exception as e:
@@ -48,4 +66,4 @@ def get_browser_page() -> Generator[Page, None, None]:
             raise
         finally:
             if browser:
-                browser.close()
+                await browser.close()
